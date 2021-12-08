@@ -1,0 +1,53 @@
+{
+  "students": {
+    "bob": {
+      "classes": {
+	"spanish": {
+	  "attendance": 100,
+	  "grade": 95
+	},
+	"biology": {
+	  "attendance": 80,
+	  "grade": 85
+	},
+	"algebra": {
+	  "attendance": 85,
+	  "grade": 90
+	},
+	"gym": {
+	  "attendance": 75,
+	  "grade": 75
+	},
+	"literature": {
+	  "attendance": 100,
+	  "grade": 90
+	}
+      }
+    },
+    "alice": {
+      "classes": {
+	"spanish": {
+	  "attendance": 75,
+	  "grade": 90
+	  },
+	"biology": {
+	  "attendance": 80,
+	  "grade": 95
+	},
+	"algebra": {
+	  "attendance": 75,
+	  "grade": 95
+	},
+	"gym": {
+	  "attendance": 90,
+	  "grade": 95
+	},
+	"literature": {
+	  "attendance": 65,
+	  "grade": 90
+	}
+      }
+    }
+  }
+}
+
