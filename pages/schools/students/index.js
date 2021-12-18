@@ -1,19 +1,22 @@
 import React, { Component } from 'react';
 import Layout from '../../../components/Layout';
-import { Form, Input, Button, Table } from 'semantic-ui-react';
+import { Message, Form, Input, Button, Table } from 'semantic-ui-react';
 import { Link } from '../../../routes';
 import School from '../../../ethereum/school';
 import StudentRow from '../../../components/StudentRow';
-//import InputClassForm from '../../../components/InputClassForm';
-import tlink from '../../../ethereum/tlink';
 
 class StudentIndex extends Component {
   static async getInitialProps(props) {
     const { address } = props.query;
     const school = School(address);
-    //const value = 0.1;
-    const studentCount = await school.methods.getStudentsCount().call();
+    const studentCount = await school.methods.schoolEnrollment().call();
     //const approversCount = await school.methods.approversCount().call();
+    // const students = await Promise.all(
+    //   Array(parseInt(studentCount)).fill().map((element, index) => {
+    //     return school.methods.students(index).call();
+    //   })
+    // );
+
     const students = await Promise.all(
       Array(parseInt(studentCount)).fill().map((element, index) => {
         return school.methods.students(index).call();
@@ -54,9 +57,9 @@ class StudentIndex extends Component {
           <Header>
             <Row>
               <HeaderCell>ID</HeaderCell>
-              <HeaderCell>Description</HeaderCell>
+              <HeaderCell>Name</HeaderCell>
               <HeaderCell>Amount</HeaderCell>
-              <HeaderCell>Recipient</HeaderCell>
+              <HeaderCell>Address</HeaderCell>
               <HeaderCell>Approval</HeaderCell>
             </Row>
           </Header>

@@ -10,13 +10,13 @@ class SchoolShow extends Component {
   static async getInitialProps(props) {
     const school = School(props.query.address);
 
-    const summary = await school.methods.getSummary().call();
+    const summary = await school.methods.schoolSummary().call();
 
     return {
       address: props.query.address,
       //minimumContribution: summary[0],
       //balance: summary[1],
-      studentsCount: summary[0],
+      studentCount: summary[0],
       //approversCount: summary[3],
       manager: summary[1]
     };
@@ -27,7 +27,7 @@ class SchoolShow extends Component {
       //balance,
       manager,
       //minimumContribution,
-      studentsCount,
+      studentCount
       //approversCount
     } = this.props;
 
@@ -43,7 +43,7 @@ class SchoolShow extends Component {
       //   description: 'You must contribute at least this much wei to become a contributor'
       // },
       {
-        header: studentsCount,
+        header: studentCount,
         meta: 'Number of Students'
       }
       // {
@@ -79,10 +79,15 @@ class SchoolShow extends Component {
           <Grid.Row>
             <Grid.Column>
               <Link route={`/schools/${this.props.address}/students`}>
-              <a>
-                <Button primary>View Students</Button>
-              </a>
+		<a>
+                  <Button primary>View Students</Button>
+		</a>
               </Link>
+	      <Link route={`/schools/${this.props.address}/courses`}>
+		<a>
+		  <Button primary>View Courses</Button>
+		</a>
+	      </Link>
             </Grid.Column>
           </Grid.Row>
         </Grid>

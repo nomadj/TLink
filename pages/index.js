@@ -1,6 +1,5 @@
 import React, { Component } from 'react';
 import factory from '../ethereum/factory';
-import tlink from '../ethereum/tlink';
 import { Card, Button } from 'semantic-ui-react';
 import Layout from '../components/Layout';
 import { Link } from '../routes';
@@ -8,7 +7,6 @@ import { Link } from '../routes';
 class SchoolIndex extends Component {
   static async getInitialProps() {
     const schools = await factory.methods.getDeployedSchools().call();
-    //const grade = await tlink.methods.grade().call();
 
     return { schools };
   }

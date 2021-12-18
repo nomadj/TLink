@@ -19,19 +19,21 @@ contract SchoolFactory {
 contract School is ChainlinkClient {
 	using Chainlink for Chainlink.Request;
 
-	uint256 public grade;
-	uint256 public schoolEnrollment;
-	uint256 public classEnrollment;
-	uint256 public studentID;
-	mapping (address => bool) public addrToBool;
-	mapping (address => string) public addrToName;
-	mapping (uint => Student) public students;
-		//mapping (uint => Class) public classes;
-	mapping (address => Student) public addrToStudent;		
 	address public manager;
+	uint256 public grade;
+	mapping (address => uint256) public grades;
+	uint256 public schoolEnrollment;
+	uint256 public studentID;
+	uint256 public courseCount;
+	uint256 public courseID;
+	uint256 public structGrade;
+	mapping (uint => Student) public students;
+	mapping (string => uint) public studentNameToID;
+	mapping (address => uint) public studentAddressToID;
+	mapping (uint => Course) public courses;
+	mapping (string => uint) public courseNameToID;
+	mapping (address => bool) public isEnrolled;
 	uint public minimumContribution;
-	mapping(address => bool) public approvers;
-	uint public approversCount;
 	uint256 public gradeThreshold;
 	address private oracle;
 	bytes32 private jobId;
@@ -53,50 +55,83 @@ contract School is ChainlinkClient {
 
 	struct Student {
 		string name;
+		uint id;
 		uint value;
 		address addr;
-		//mapping (uint => Class) currentClasses;
-		//mapping (uint => Class) completedClasses;
-		//mapping (Class => uint) reportCard;
+		string[] currentCourses;
+		string[] completedCourses;
+		uint currentCourseCount;
+		uint grade;
 	}
 
-	function contribute() public payable {
-		require(msg.value > minimumContribution);
+	struct Course {
+		string name;
+		uint id;
+		address teacher;
+		string description;
+		uint enrollment;
+		address[] students;
+		uint tuition;
+		mapping (address => uint) grades;
+ 	}
 
-		approvers[msg.sender] = true;
-		approversCount++;
-	}
-
-	/* function addStudent(string name, uint value, address recipient) public { */
-	/* 	Student memory newStudent = Student({ */
-	/* 		name: name, */
-	/* 		value: value, */
-	/* 		recipient: recipient, */
-	/* 		passing: false */
-	/* 	}); */
-
-	/* 	students.push(newStudent); */
-	/* } */
-
-	function addStudent(string memory name, uint value) public {
-		require(!addrToBool[msg.sender]);
+	function schoolEnroll(string memory name, uint value) public {
+		require(!isEnrolled[msg.sender]);
 		studentID = schoolEnrollment++;
-		Student storage newStudent = students[studentID];
-		newStudent.name = name;
-		newStudent.value = value;
-		newStudent.addr = payable(msg.sender);
-		addrToName[msg.sender] = name;
-		addrToBool[msg.sender] = true;
+		Student storage student = students[studentID];
+		studentAddressToID[msg.sender] = studentID;
+		studentNameToID[name] = studentID;
+		student.name = name;
+		student.id = studentID;
+		student.value = value;
+		student.addr = msg.sender;
+		student.currentCourseCount = 0;
+		isEnrolled[msg.sender] = true;
 	}
 
-	function getGrade() public returns (bytes32 requestId) {
+	function addCourse(string memory name, string memory description, uint tuition) public restricted {
+		courseID = courseCount++;
+		Course storage course = courses[courseID];
+		courseNameToID[name] = courseID;
+		course.name = name;
+		course.id = courseID;
+		course.teacher = msg.sender;
+		course.description = description;
+		course.tuition = tuition;
+		course.enrollment = 0;
+	}
+
+	function courseEnroll(string memory courseName) public payable {
+		Course storage course = courses[courseNameToID[courseName]];
+		Student storage student = students[studentAddressToID[msg.sender]];
+		student.currentCourses.push(course.name);
+		student.currentCourseCount = student.currentCourses.length;
+		course.students.push(msg.sender);
+		student.currentCourses[student.currentCourseCount -1] = course.name;
+		course.enrollment++;
+		payable(manager).transfer(msg.value);
+	}
+
+	function getCourseStudents(string memory courseName) public view returns (address[] memory) {
+		Course storage course = courses[courseNameToID[courseName]];
+		return course.students;
+	}
+
+	function getStudentObj() public view returns (Student memory) {
+		Student storage student = students[studentAddressToID[msg.sender]];
+		return student;
+	}
+
+	function linkReq(string memory courseName, uint index) public returns (bytes32 requestId) {
+		Course storage course = courses[courseNameToID[courseName]];
+		Student storage student = students[studentAddressToID[course.students[index]]];
 		Chainlink.Request memory request = buildChainlinkRequest(jobId, address(this), this.fulfill.selector);
 		request.add("get", "https://ipfs.io/ipfs/QmZ19vAtuEBf24p6w8ojcsriLeV2bF8cNX65aTQVQBPrnv");
 		string[] memory path = new string[](5);
 		path[0] = "students";
-		path[1] = addrToName[msg.sender];
+		path[1] = student.name;
 		path[2] = "classes";
-		path[3] = "gym";
+		path[3] = course.name;
 		path[4] = "grade";
 		request.addStringArray("path", path);
 
@@ -108,22 +143,38 @@ contract School is ChainlinkClient {
 
 	function fulfill(bytes32 _requestId, uint256 _grade) public recordChainlinkFulfillment(_requestId) {
 		grade = _grade;
+		grades[msg.sender] = grade;
+	}
+
+	function getGrade(string memory courseName) public returns (uint256) {
+		Course storage course = courses[courseNameToID[courseName]];
+		course.grades[msg.sender] = grade;
+		Course storage updatedCourse = courses[courseNameToID[courseName]];
+		structGrade = updatedCourse.grades[msg.sender];
+		return structGrade;
 	}
 	
 	function sendReward(uint index, uint256 studentGrade) public payable {
 		gradeThreshold = 80;
 		require(studentGrade >= gradeThreshold);
 		Student storage student = students[index];
-		//address payable studentAddr;
-		//studentAddr = payable(student.addr);
 		payable(student.addr).transfer(msg.value);
 	}
 
-	function getSummary() public view returns (uint, address) {
+	/* function getSummary() public view returns (uint, address) { */
+	/* 	return (schoolEnrollment, manager); */
+	/* } */
+
+	function schoolSummary() public view returns (uint, address) {
 		return (schoolEnrollment, manager);
 	}
 
+	/* function courseSummary() public view returns () { */
+		
+	/* 	return (courseCount, manager); */
+	/* } */
+
 	function getStudentsCount() public view returns (uint) {
-		return schoolEnrollment;
+		return studentID;
 	}
 }
